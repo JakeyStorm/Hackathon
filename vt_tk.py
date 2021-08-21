@@ -80,7 +80,7 @@ def search():
 	label1 = tk.Label(text="файл создан",width=10,
 	height=3,)
 	s = open(str(b[0])+'.txt','w',encoding='utf-8') 
-	x = ('content':b)
+	x = {'content':b}
 	y = json.dumps(x)
 	s.write(y)
 	label1.place(x=200,y=190)
