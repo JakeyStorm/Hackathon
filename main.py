@@ -1,88 +1,162 @@
+import tkinter as tk
+import tkinter as tk
+from tkinter import filedialog as fd
+import re
+import json
+import tkinter.ttk as ttk
+import csv
+import tkinter as tk
+import tkinter.ttk as ttk
+from tkinter import *
+
 import re
 import nltk
 import os
 import gensim.downloader as api
 from multiprocessing import cpu_count
-from gensim.models.word2vec import Word2Vec
-
-
-
-dataset_info = api.info("text8")
-dataset = api.load("text8")
-word2vec_model = api.load('word2vec-google-news-300')
-
-
-data =[]
-for word in dataset:
-    data.append(word)
-
-data_1 = data[:1200]
-data_2 = data[1200:]
-w2v_model = Word2Vec(data_1, min_count=0, workers=cpu_count())
-
-
-w2v_model.save('Word2VecModel')
-model = Word2Vec.load('Word2VecModel')
-
-article_text = ""
-f = open('f.txt', 'r',encoding='utf-8')
-paragraphs=f.read()
-f_city = open('bdcity.txt', 'r')
-
-df = f
-
-strcity = f_city.read().split()
-paragraphsSplit = paragraphs.split()
-city_in_text=""
-for i in range(len(strcity)):
-    if strcity[i] in paragraphs:
-        city_in_text = strcity[i]
-
-f_name = open('russian_surnames.txt', 'r', encoding='utf-8')
-strName = f_name.read().split()
-
-for j in range(len(strName)):
-    if strName[j] in paragraphsSplit:
-        paragraphs = paragraphs.replace(strName[j]," ", 1)
-
 
 import pymorphy2
-from nltk.corpus import stopwords
-morph = pymorphy2.MorphAnalyzer()
-ru_stopwords = stopwords.words('russian')
-digits = [str(i) for i in range(10)]
-def preprocess(tokens):
-    return [morph.normal_forms(word)[0]
-            for word in tokens
-                if (word[0] not in digits and
-                    word not in ru_stopwords)]
+from gensim.models.word2vec import Word2Vec
+from corus import load_lenta
 
-for p in paragraphs:
-    article_text += p
-print(article_text)
-processed_article = article_text.lower()
-processed_article = re.sub('[^а-яА-Я]', ' ', processed_article)
-processed_article = re.sub(r'\s+', ' ', processed_article)
-all_sentences = nltk.sent_tokenize(processed_article)
-all_words = [nltk.word_tokenize(sent) for sent in all_sentences]
-from nltk.corpus import stopwords
-for i in range(len(all_words)):
-    all_words[i] = [w for w in all_words[i] if w not in stopwords.words('russian')]
-from nltk.corpus import stopwords
-for i in range(len(all_words)):
-    all_words[i] = [w for w in all_words[i] if w not in stopwords.words('russian')]
+from gensim.utils import simple_preprocess
 from gensim.models import Word2Vec
+from nltk.corpus import stopwords
 
-word2vec = Word2Vec(all_words,min_count=1)
-word2vec1 = Word2Vec(all_words,min_count=3)
 
-vocabulary = word2vec.wv.vocab
-vocabulary1 = word2vec1.wv.vocab
 
-for i in vocabulary1.keys():
-    check=i
-    break
+class App(tk.Tk):
+    def __init__(self, path, l):
+        self.l = l
+        super().__init__()
+        self.title("Заголовки")
 
-print(word2vec.wv.most_similar(check))
-print(vocabulary1)
+        columns = ("#1")
+        self.tree = ttk.Treeview(self, show="headings", columns=columns)
+        self.tree.heading("#1", text="Заголовок")
 
+        ysb = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.tree.yview)
+        self.tree.configure(yscroll=ysb.set)
+
+        for contact in self.l:
+            self.tree.insert("", tk.END, values=contact)
+        self.tree.bind("<<TreeviewSelect>>", self.print_selection)
+
+        self.tree.grid()
+        ysb.grid()
+        self.rowconfigure(0, weight=2)
+        self.columnconfigure(0, weight=2)
+
+    def print_selection(self, event):
+        for selection in self.tree.selection():
+            item = self.tree.item(selection)
+            last_name = item
+            print(text.format(last_name))
+
+
+window = tk.Tk()
+window.title("Интерфакс")
+
+window.geometry('550x450')
+window.configure(background='LightSkyBlue4')
+
+label = tk.Label()
+g = ''
+
+
+def callback():
+    global g
+    name = fd.askopenfilename()
+    label = tk.Label(text=name, bg="LightSkyBlue3")
+    label.place(x=190, y=95)
+    label['relief'] = RIDGE
+    s = label.cget('text')
+
+    f = open(s, 'r', encoding='utf-8')
+
+    text = json.load(f)[0]['news'][0]['body']
+    g = text
+    print(g)
+
+
+button = tk.Button(
+    text="<Выбрать файл>",
+    width=15,
+    height=3,
+    bg="LightSkyBlue3",
+    fg="black",
+    command=callback,
+    overrelief=SUNKEN).place(x=30, y=80)
+
+
+def search():
+    b = g
+    label1 = tk.Label(text="<Файл создан>", width=15,
+                      height=0, bg="LightSkyBlue3")
+    label1['relief'] = RIDGE
+    s = open(str(b[0]) + '.txt', 'w', encoding='utf-8')
+    x = {'content': b}
+    y = json.dumps(x)
+    s.write(y)
+    label1.place(x=190, y=205)
+    s1 = re.findall(r'\w+', b)
+    print(s1)
+    app = App(".", s1)
+
+    app.mainloop()
+
+
+button2 = tk.Button(
+    text="<Сгеннерировать>",
+    width=15,
+    height=3,
+    bg="LightSkyBlue3",
+    fg="black",
+    command=search,
+    overrelief=SUNKEN
+)
+
+
+def clear():
+    window.configure(background='LightSkyBlue4')
+    label = tk.Label(
+        text='',
+        width=100,
+        height=3,
+        bg='LightSkyBlue4',
+        fg='LightSkyBlue4'
+    )
+    label1 = tk.Label(text=' ',
+                      width=50,
+                      height=50,
+                      bg='LightSkyBlue4',
+                      fg="LightSkyBlue4")
+
+    label1.place(x=190, y=95)
+    label.place(x=190, y=205)
+
+
+button3 = tk.Button(text="<Очистить>",
+                    width=15,
+                    height=3,
+                    bg="LightSkyBlue3",
+                    fg="black",
+                    command=clear,
+                    overrelief=SUNKEN,
+
+                    )
+button3.place(x=30, y=300)
+button2.place(x=30, y=190)
+
+label_interfaks = tk.Label(
+    text="InterFax",
+    width=10,
+    height=2,
+    bg="LightSkyBlue4",
+    font=('Helvetica', '20'),
+
+)
+
+label_interfaks.place(x=200, y=5)
+
+window.mainloop()
